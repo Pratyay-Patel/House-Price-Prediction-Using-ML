@@ -481,6 +481,13 @@
                             <div class="predicted-price">₹ <span id="predictedPrice">0</span> Lakhs</div>
                             <small class="text-muted">This is an estimate based on similar properties in the area.</small>
                         </div>
+                        <div id="scalePanel" class="mt-2" style="display: none;">
+                            <small class="text-muted">
+                                Price scale: <span id="scaleValue">1.00</span>
+                                <button id="scaleDown" class="btn btn-sm btn-outline-secondary ms-2">−</button>
+                                <button id="scaleUp" class="btn btn-sm btn-outline-secondary ms-1">+</button>
+                            </small>
+                        </div>
                     </div>
                 </div>
                 
@@ -2039,6 +2046,10 @@ function predictPrice() {
         if (data.predictedPrice) {
             document.getElementById('predictedPrice').textContent = data.predictedPrice;
             document.getElementById('predictionResult').style.display = 'block';
+            if (typeof data.scaleApplied !== 'undefined') {
+                currentScale = parseFloat(data.scaleApplied) || currentScale;
+                updateScaleUI();
+            }
         } else {
             alert("Prediction error: " + (data.error || "Unknown error"));
         }
@@ -2054,6 +2065,14 @@ function predictPrice() {
             
 
             populateAreaDropdowns();
+            // Load and wire up dynamic price scale controls
+            loadScale();
+            const scaleDownBtn = document.getElementById('scaleDown');
+            const scaleUpBtn = document.getElementById('scaleUp');
+            if (scaleDownBtn && scaleUpBtn) {
+                scaleDownBtn.addEventListener('click', function() { changeScale(-0.05); });
+                scaleUpBtn.addEventListener('click', function() { changeScale(0.05); });
+            }
 
             const priceRange = document.getElementById('priceRange');
             const priceRangeValue = document.getElementById('priceRangeValue');
@@ -2081,6 +2100,44 @@ function predictPrice() {
         });
         
 
+
+    // Dynamic price scale handling
+    let currentScale = 1.0;
+    function updateScaleUI() {
+        const panel = document.getElementById('scalePanel');
+        const span = document.getElementById('scaleValue');
+        if (panel && span) {
+            panel.style.display = 'block';
+            span.textContent = currentScale.toFixed(2);
+        }
+    }
+    function loadScale() {
+        fetch('/get-config')
+            .then(r => r.json())
+            .then(cfg => {
+                if (cfg && typeof cfg.predictionScale !== 'undefined') {
+                    currentScale = parseFloat(cfg.predictionScale) || currentScale;
+                    updateScaleUI();
+                }
+            })
+            .catch(() => {});
+    }
+    function setScale(scale) {
+        return fetch('/set-scale', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scale })
+        }).then(r => r.json());
+    }
+    function changeScale(delta) {
+        const next = Math.max(0.10, Math.min(10.0, (currentScale + delta)));
+        setScale(next).then(resp => {
+            if (resp && resp.ok) {
+                currentScale = resp.predictionScale;
+                updateScaleUI();
+            }
+        });
+    }
 
     magicWandActive = false;
 
