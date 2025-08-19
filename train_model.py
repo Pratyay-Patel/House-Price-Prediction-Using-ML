@@ -8,8 +8,11 @@ import joblib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
-df = pd.read_csv('scrappeddata.csv')
+dataset_path = 'latestnewdataset_adjusted.csv' if os.path.exists('latestnewdataset_adjusted.csv') else 'latestnewdataset.csv'
+print(f"Training from dataset: {dataset_path}")
+df = pd.read_csv(dataset_path)
 
 target = 'Price (Lakhs)'
 features = ['Area', 'Area (sq.ft.)', 'BHK', 'Bathrooms', 'Furnishing Status',

@@ -2018,20 +2018,21 @@ function predictPrice() {
         return;
     }
 
-    fetch("http://localhost:5000/predict", {
+    fetch("/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            Area: area,
-            Area_sqft: areaSqft,
-            BHK: bhk,
-            Bathrooms: bathrooms,
-            Furnishing: furnishing,
-            Age: age,
-            Distance_School: schoolDist,
-            Distance_Hospital: hospitalDist,
-            Distance_Metro: metroDist
-        })
+            "Area": area,
+            "BHK": bhk,
+            "Bathrooms": bathrooms,
+            "Furnishing Status": furnishing,
+            "Area (sq.ft.)": areaSqft,
+            "Age of Property (years)": age,
+            "Distance to School (km)": schoolDist,
+            "Distance to Hospital (km)": hospitalDist,
+            "Distance to Metro (km)": metroDist
+})
+
     })
     .then(res => res.json())
     .then(data => {
@@ -2081,7 +2082,7 @@ function predictPrice() {
         
 
 
-    let magicWandActive = false;
+    magicWandActive = false;
 
     document.getElementById("magicWandBtn").addEventListener("click", () => {
         magicWandActive = !magicWandActive;
@@ -2096,7 +2097,7 @@ function predictPrice() {
         document.getElementById("clickedCoordinates").textContent =
             `Clicked Coordinates: Latitude ${lat.toFixed(6)}, Longitude ${lng.toFixed(6)}`;
 
-        fetch("http://localhost:5000/summarize-location", {
+        fetch("/summarize-location", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ lat, lng })
@@ -2145,7 +2146,7 @@ function predictPrice() {
             const { lat, lng } = e.latlng;
             document.getElementById("clickedCoordinates").textContent = `Clicked Coordinates: Latitude ${lat.toFixed(6)}, Longitude ${lng.toFixed(6)}`;
 
-            fetch("http://localhost:5000/summarize-location", {
+            fetch("/summarize-location", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ lat, lng })
