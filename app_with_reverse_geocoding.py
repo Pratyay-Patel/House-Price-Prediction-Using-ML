@@ -18,6 +18,9 @@ GEMINI_ENABLED = bool(GEMINI_API_KEY and genai is not None)
 if GEMINI_ENABLED:
     genai.configure(api_key=GEMINI_API_KEY)
 
+# Global, dynamic prediction scale (can be changed at runtime)
+CURRENT_PREDICTION_SCALE = float(os.environ.get('PREDICTION_SCALE', '1.0'))
+
 # Load the ML model (with auto-reload on file change)
 ML_MODEL_PATH = 'house_price_model.pkl'
 _ml_model = None
@@ -70,6 +73,17 @@ def home():
     return send_file("index_with_magicwand.html", mimetype="text/html; charset=utf-8")
 
 
+@app.before_request
+def update_scale_from_query():
+    global CURRENT_PREDICTION_SCALE
+    if 'scale' in request.args:
+        try:
+            new_scale = float(request.args.get('scale'))
+            CURRENT_PREDICTION_SCALE = new_scale
+        except Exception:
+            pass
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json() or {}
@@ -115,10 +129,7 @@ def predict():
 
         prediction = get_ml_model().predict(df)[0]
         # Optional server-side multiplier to quickly scale displayed prices without retraining
-        try:
-            prediction_scale = float(os.environ.get('PREDICTION_SCALE', '1.0'))
-        except Exception:
-            prediction_scale = 1.0
+        prediction_scale = CURRENT_PREDICTION_SCALE
         raw_prediction = float(prediction)
         scaled_prediction = raw_prediction * prediction_scale
         return jsonify({
@@ -156,6 +167,23 @@ Mention:
         return jsonify({'summary': response.text})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/set-scale', methods=['POST'])
+def set_scale():
+    global CURRENT_PREDICTION_SCALE
+    data = request.get_json() or {}
+    try:
+        new_scale = float(data.get('scale'))
+        CURRENT_PREDICTION_SCALE = new_scale
+        return jsonify({'ok': True, 'predictionScale': CURRENT_PREDICTION_SCALE})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+
+@app.route('/get-config', methods=['GET'])
+def get_config():
+    return jsonify({'predictionScale': CURRENT_PREDICTION_SCALE})
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
