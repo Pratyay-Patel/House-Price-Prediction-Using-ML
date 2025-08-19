@@ -324,7 +324,6 @@
                         <p>Loading property data...</p>
                     </div>
                 </div><button id="magicWandBtn">🪄 Magic Wand</button>
-<div id="clickedCoordinates"></div>
 <div id="clickedCoordinates" style="margin-top: 10px; font-weight: 600; color: var(--primary-color);"></div>
 <div id="summaryBox" style="margin-top: 15px; padding: 15px; border-left: 4px solid #3498db; background-color: #eef6fc; font-family: Arial, sans-serif; line-height: 1.5; display: none;"></div>
 
@@ -480,13 +479,6 @@
                             <h5>Estimated Property Price</h5>
                             <div class="predicted-price">₹ <span id="predictedPrice">0</span> Lakhs</div>
                             <small class="text-muted">This is an estimate based on similar properties in the area.</small>
-                        </div>
-                        <div id="scalePanel" class="mt-2" style="display: none;">
-                            <small class="text-muted">
-                                Price scale: <span id="scaleValue">1.00</span>
-                                <button id="scaleDown" class="btn btn-sm btn-outline-secondary ms-2">−</button>
-                                <button id="scaleUp" class="btn btn-sm btn-outline-secondary ms-1">+</button>
-                            </small>
                         </div>
                     </div>
                 </div>
@@ -1904,6 +1896,40 @@ function initMap() {
 
     addPropertiesToMap(properties);
 
+    // Handle map clicks for Magic Wand summaries
+    map.on("click", function (e) {
+        if (!magicWandActive) return;
+
+        const { lat, lng } = e.latlng;
+        const coordsEl = document.getElementById("clickedCoordinates");
+        if (coordsEl) {
+            coordsEl.textContent = `Clicked Coordinates: Latitude ${lat.toFixed(6)}, Longitude ${lng.toFixed(6)}`;
+        }
+
+        fetch("/summarize-location", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat, lng })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const summaryBox = document.getElementById("summaryBox");
+            if (!summaryBox) return;
+            summaryBox.style.display = "block";
+            if (data.summary) {
+                summaryBox.innerHTML = `<strong>📍 AI Real Estate Summary:</strong><br><br>${data.summary}`;
+            } else {
+                summaryBox.innerHTML = `<strong>Error:</strong> ${data.error || 'Unknown error'}`;
+            }
+        })
+        .catch(() => {
+            const summaryBox = document.getElementById("summaryBox");
+            if (!summaryBox) return;
+            summaryBox.style.display = "block";
+            summaryBox.innerHTML = "⚠️ Failed to fetch summary from server.";
+        });
+    });
+
    
     markersCluster.on('clusterclick', function (a) {
         map.setView(a.latlng, map.getZoom() + 8); 
@@ -2054,7 +2080,10 @@ function predictPrice() {
             alert("Prediction error: " + (data.error || "Unknown error"));
         }
     })
-    .catch(() => alert("Backend is not responding. Start app.py first."));
+    .catch((err) => {
+        console.error('Prediction request failed:', err);
+        alert("Prediction request failed. Please ensure the server is running.");
+    });
 }
 
         
@@ -2065,14 +2094,7 @@ function predictPrice() {
             
 
             populateAreaDropdowns();
-            // Load and wire up dynamic price scale controls
-            loadScale();
-            const scaleDownBtn = document.getElementById('scaleDown');
-            const scaleUpBtn = document.getElementById('scaleUp');
-            if (scaleDownBtn && scaleUpBtn) {
-                scaleDownBtn.addEventListener('click', function() { changeScale(-0.05); });
-                scaleUpBtn.addEventListener('click', function() { changeScale(0.05); });
-            }
+            // Removed dynamic price scale controls
 
             const priceRange = document.getElementById('priceRange');
             const priceRangeValue = document.getElementById('priceRangeValue');
@@ -2101,88 +2123,20 @@ function predictPrice() {
         
 
 
-    // Dynamic price scale handling
-    let currentScale = 1.0;
-    function updateScaleUI() {
-        const panel = document.getElementById('scalePanel');
-        const span = document.getElementById('scaleValue');
-        if (panel && span) {
-            panel.style.display = 'block';
-            span.textContent = currentScale.toFixed(2);
-        }
-    }
-    function loadScale() {
-        fetch('/get-config')
-            .then(r => r.json())
-            .then(cfg => {
-                if (cfg && typeof cfg.predictionScale !== 'undefined') {
-                    currentScale = parseFloat(cfg.predictionScale) || currentScale;
-                    updateScaleUI();
-                }
-            })
-            .catch(() => {});
-    }
-    function setScale(scale) {
-        return fetch('/set-scale', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scale })
-        }).then(r => r.json());
-    }
-    function changeScale(delta) {
-        const next = Math.max(0.10, Math.min(10.0, (currentScale + delta)));
-        setScale(next).then(resp => {
-            if (resp && resp.ok) {
-                currentScale = resp.predictionScale;
-                updateScaleUI();
-            }
-        });
-    }
+    // Removed dynamic price scale handling
 
-    magicWandActive = false;
+    let magicWandActive = false;
 
-    document.getElementById("magicWandBtn").addEventListener("click", () => {
-        magicWandActive = !magicWandActive;
-        document.getElementById("magicWandBtn").classList.toggle("active");
-        alert("Magic Wand " + (magicWandActive ? "Activated!" : "Deactivated."));
-    });
+    // (Duplicate listener removed to prevent double-toggle)
 
-    map.on("click", function (e) {
-        if (!magicWandActive) return;
-
-        const { lat, lng } = e.latlng;
-        document.getElementById("clickedCoordinates").textContent =
-            `Clicked Coordinates: Latitude ${lat.toFixed(6)}, Longitude ${lng.toFixed(6)}`;
-
-        fetch("/summarize-location", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lat, lng })
-        })
-        .then(res => res.json())
-        .then(data => {
-            const summaryBox = document.getElementById("summaryBox");
-            if (data.summary) {
-                summaryBox.style.display = "block";
-                summaryBox.innerHTML = `<strong>📍 AI Real Estate Summary:</strong><br><br>${data.summary}`;
-            } else {
-                summaryBox.style.display = "block";
-                summaryBox.innerHTML = `<strong>Error:</strong> ${data.error}`;
-            }
-        })
-        .catch(() => {
-            const summaryBox = document.getElementById("summaryBox");
-            summaryBox.style.display = "block";
-            summaryBox.innerHTML = "⚠️ Failed to fetch summary from server.";
-        });
-    });
+    // Map click handler registered inside initMap (see above)
 
 
 
 
 
   
-    let magicWandActive = false;
+    // Remove duplicate re-declaration to avoid shadowing the above state
 
     document.getElementById("magicWandBtn").addEventListener("click", () => {
         magicWandActive = !magicWandActive;
@@ -2190,42 +2144,7 @@ function predictPrice() {
         alert("Magic Wand " + (magicWandActive ? "Activated!" : "Deactivated."));
     });
 
-    const mapElement = document.getElementById("map");
-    if (mapElement && typeof L !== "undefined") {
-        const map = L.map('map').setView([18.5204, 73.8567], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        map.on("click", function (e) {
-            if (!magicWandActive) return;
-
-            const { lat, lng } = e.latlng;
-            document.getElementById("clickedCoordinates").textContent = `Clicked Coordinates: Latitude ${lat.toFixed(6)}, Longitude ${lng.toFixed(6)}`;
-
-            fetch("/summarize-location", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ lat, lng })
-            })
-            .then(res => res.json())
-            .then(data => {
-                const summaryBox = document.getElementById("summaryBox");
-                if (data.summary) {
-                    summaryBox.style.display = "block";
-                    summaryBox.innerHTML = `<strong>📍 AI Real Estate Summary:</strong><br><br>${data.summary}`;
-                } else {
-                    summaryBox.style.display = "block";
-                    summaryBox.innerHTML = `<strong>Error:</strong> ${data.error}`;
-                }
-            })
-            .catch(() => {
-                const summaryBox = document.getElementById("summaryBox");
-                summaryBox.style.display = "block";
-                summaryBox.innerHTML = "⚠️ Failed to fetch summary from server.";
-            });
-        });
-    }
+    // Duplicate map initialization removed. Using the single map created in initMap().
 </script>
 
 </body>
