@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv(r'C:\Users\LENOVO\Desktop\ML MODELS\house price prediction\FINAL ASEP 2\latestnewdataset.csv')
+df = pd.read_csv('scrappeddata.csv')
 
 target = 'Price (Lakhs)'
 features = ['Area', 'Area (sq.ft.)', 'BHK', 'Bathrooms', 'Furnishing Status',
