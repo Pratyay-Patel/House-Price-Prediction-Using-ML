@@ -471,9 +471,10 @@
                             </div>
                         </div>
                         
-                        <button id="predictButton" class="btn btn-primary">
+                        <button id="predictButton" type="button" class="btn btn-primary" onclick="predictPrice(event)">
                             <i class="fas fa-chart-line me-2"></i>Predict Price
                         </button>
+
                         
                         <div id="predictionResult" class="prediction-result" style="display: none;">
                             <h5>Estimated Property Price</h5>
@@ -2033,7 +2034,9 @@ function addPropertiesToMap(propertiesToShow) {
         
         
 
-function predictPrice() {
+function predictPrice(event) {
+    if (event) event.preventDefault(); // ✅ stop the form refresh
+
     const area = document.getElementById('predictArea').value;
     const bhk = parseInt(document.getElementById('predictBHK').value);
     const bathrooms = parseInt(document.getElementById('predictBathrooms').value);
@@ -2044,14 +2047,13 @@ function predictPrice() {
     const hospitalDist = parseFloat(document.getElementById('predictHospital').value);
     const metroDist = parseFloat(document.getElementById('predictMetro').value);
 
-    
     if (!area || isNaN(bhk) || isNaN(bathrooms) || !furnishing || isNaN(areaSqft) ||
         isNaN(age) || isNaN(schoolDist) || isNaN(hospitalDist) || isNaN(metroDist)) {
         alert('Please fill in all fields with valid values.');
         return;
     }
 
-    fetch("/predict", {
+    fetch("/predict", { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2064,8 +2066,7 @@ function predictPrice() {
             "Distance to School (km)": schoolDist,
             "Distance to Hospital (km)": hospitalDist,
             "Distance to Metro (km)": metroDist
-})
-
+        })
     })
     .then(res => res.json())
     .then(data => {
@@ -2085,6 +2086,7 @@ function predictPrice() {
         alert("Prediction request failed. Please ensure the server is running.");
     });
 }
+
 
         
 

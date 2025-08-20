@@ -41,8 +41,9 @@ def get_ml_model():
         _ml_model_mtime = mtime
     return _ml_model
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=".", static_url_path="")
 CORS(app)
+
 
 # Reverse geocoding using OpenStreetMap Nominatim
 def reverse_geocode(lat, lng):
@@ -70,8 +71,11 @@ def reverse_geocode(lat, lng):
 
 @app.route("/")
 def home():
-    # Serve HTML as bytes to avoid Windows default cp1252 decoding issues
     return send_file("index_with_magicwand.html", mimetype="text/html; charset=utf-8")
+
+@app.route("/<path:path>")
+def static_proxy(path):
+    return send_file(path)
 
 
 @app.before_request
